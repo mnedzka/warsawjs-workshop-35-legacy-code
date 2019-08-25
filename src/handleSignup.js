@@ -59,9 +59,10 @@ export async function handleSignup(req, res, next) {
   }
 }
 
-export function checkPassword(passwords, i, password, correct) {
-  passwords = fs.readFileSync(path.join(__dirname, '../config/weakpasswords.txt'), 'utf-8');
+export function checkPassword(passwords, i, password, correct, doReadPasswordsFile = readPasswordsFile) {
+  passwords = doReadPasswordsFile().split('\n');
   for (i = 0; i < passwords.length; i++) {
+    console.log(i, passwords[i]);
     if (password === passwords[i]) {
       correct = 1;
     }
@@ -71,3 +72,8 @@ export function checkPassword(passwords, i, password, correct) {
   }
   return { passwords, i, correct };
 }
+
+function readPasswordsFile() {
+  return fs.readFileSync(path.join(__dirname, '../config/weakpasswords.txt'), 'utf-8');
+}
+
