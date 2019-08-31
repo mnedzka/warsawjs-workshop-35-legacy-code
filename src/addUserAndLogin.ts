@@ -16,14 +16,12 @@ export async function addUserAndLogin(
     try {
       if (doIsInvalid(password)) {
         return '/signup?error=3';
-      }
-      else {
+      } else {
         const user = await doRegisterUser(username, password);
         await login(user);
         return '/';
       }
-    }
-    catch (e) {
+    } catch (e) {
       if (e && e.message === 'User already exists') {
         return '/signup?error=1';
       }
