@@ -1,89 +1,71 @@
-import { addUserAndLogin } from '../src/addUserAndLogin'
-import { expect } from 'chai'
-import sinon from 'sinon'
-import { UserValidator } from '../src/UserValidator'
+import { UserValidator, WEAK_PASSWORDS_FILE, BANNED_WORDS_FILE } from "../src/UserValidator";
+import { expect } from 'chai';
+import sinon from 'sinon';
 
-class TestUserValidator extends UserValidator {
-  constructor(private result: boolean) {
-    super()
-  }
+describe('UserValidator', () => {
+  describe('isInvalidPassword', () => {
+    it('returns false if file does not contain password', () => {
+      const password = 'longpassword';
+      const fileContent = '';
+      const readFile = sinon.fake.returns(fileContent);
 
-  isInvalidPassword() {
-    return this.result
-  }
-}
+      const userValidator = new UserValidator(readFile)
 
-describe('addUserAndLogin', () => {
-  it('redirects to /signup?error=2 when password is empty', async () => {
-    const password = ''
-    const username = 'banana'
-    const login = sinon.fake()
-    const userValidator = new TestUserValidator(true)
+      const result = userValidator.isInvalidPassword(password)
+      expect(result).to.equal(false);
+      expect(readFile).to.be.calledOnceWithExactly(WEAK_PASSWORDS_FILE);
+    });
 
-    const result = await addUserAndLogin(userValidator, password, username, login)
-    expect(result).to.equal('/signup?error=2')
-    expect(login).not.to.be.called
+    it('returns true if password is shorter than 7', () => {
+      const password = '123456';
+      const fileContent = '';
+      const readFile = sinon.fake.returns(fileContent);
+
+      const userValidator = new UserValidator(readFile)
+
+      const result = userValidator.isInvalidPassword(password)
+      expect(result).to.equal(true);
+      expect(readFile).to.be.calledOnceWithExactly(WEAK_PASSWORDS_FILE);
+    });
+
+    it('returns true if file contains password', () => {
+      const password = 'longpassword';
+      const fileContent = '12345\nlongpassword';
+      const readFile = sinon.fake.returns(fileContent);
+
+      const userValidator = new UserValidator(readFile)
+
+      const result = userValidator.isInvalidPassword(password)
+      expect(result).to.equal(true);
+      expect(readFile).to.be.calledOnceWithExactly(WEAK_PASSWORDS_FILE);
+    });
   })
 
-  it('redirects to /signup?error=2 when username is invalid', async () => {
-    const password = '123'
-    const username = 'ASDF@#$%'
-    const login = sinon.fake()
-    const userValidator = new TestUserValidator(true)
+  describe('isInvalidUsername', () => {
+    it('returns true if username includes banned word', () => {
+      const username = 'Tasty_avocado'
+      const fileContent = 'mango\navocado'
+      const readFile = sinon.fake.returns(fileContent)
 
-    const result = await addUserAndLogin(userValidator, password, username, login)
-    expect(result).to.equal('/signup?error=2')
-    expect(login).not.to.be.called
+      const userValidator = new UserValidator(readFile)
+
+      const result = userValidator.isInvalidUsername(username)
+
+      expect(result).to.equal(true)
+      expect(readFile).to.be.calledOnceWithExactly(BANNED_WORDS_FILE);
+    })
+
+    it('returns false if username does not include banned word', () => {
+      const username = 'Lolex'
+      const fileContent = 'mango\navocado'
+      const readFile = sinon.fake.returns(fileContent)
+
+      const userValidator = new UserValidator(readFile)
+
+      const result = userValidator.isInvalidUsername(username)
+
+      expect(result).to.equal(false)
+      expect(readFile).to.be.calledOnceWithExactly(BANNED_WORDS_FILE);
+    })
   })
-
-  it('redirects to /signup?error=3 when password is invalid', async () => {
-    const password = '123'
-    const username = 'asdf'
-    const login = sinon.fake()
-    const userValidator = new TestUserValidator(true)
-
-    const result = await addUserAndLogin(userValidator, password, username, login)
-    expect(result).to.equal('/signup?error=3')
-    expect(login).not.to.be.called
-  })
-
-  it('redirects to / when all is valid', async () => {
-    const password = '1234567'
-    const username = 'asdf'
-    const user = { username, password }
-    const login = sinon.fake()
-    const userValidator = new TestUserValidator(false)
-    const registerUser = sinon.fake.resolves(user)
-
-    const result = await addUserAndLogin(userValidator, password, username, login, registerUser)
-
-    expect(result).to.equal('/')
-    expect(login).to.be.calledOnceWithExactly(user)
-  })
-
-  it('redirects to /signup?error=1 when user already exists', async () => {
-    const password = '1234567'
-    const username = 'asdf'
-    const login = sinon.fake()
-    const userValidator = new TestUserValidator(false)
-    const registerUser = sinon.fake.rejects(new Error('User already exists'))
-
-    const result = await addUserAndLogin(userValidator, password, username, login, registerUser)
-
-    expect(result).to.equal('/signup?error=1')
-    expect(login).not.to.be.called
-  })
-
-  it('throws e when unexpected error occurs', async () => {
-    const password = '1234567'
-    const username = 'asdf'
-    const login = sinon.fake()
-    const userValidator = new TestUserValidator(false)
-    const registerUser = sinon.fake.rejects(new Error('unexpected error'))
-
-    const promise = addUserAndLogin(userValidator, password, username, login, registerUser)
-
-    await expect(promise).to.be.rejectedWith('unexpected error')
-    expect(login).not.to.be.called
-  })
-})
+});
