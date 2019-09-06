@@ -8,7 +8,7 @@ export const BANNED_WORDS_FILE =
   path.join(__dirname, '../config/bannedwords.txt')
 
 export class UserValidator {
-  constructor(
+  constructor (
     private doReadFile = readFile
   ) {
   }
@@ -32,15 +32,12 @@ export class UserValidator {
 
     const usernameNormalized = username.toLowerCase()
 
-    for (const item of bannedwords) {
-      if (usernameNormalized.includes(item)) {
-        return true;
-      }
-    }
-    return false
+    return bannedwords.some(
+      word => usernameNormalized.includes(word)
+    )
   }
 }
 
-function readFile(fileName: string) {
+function readFile (fileName: string) {
   return fs.readFileSync(fileName, 'utf-8');
 }
